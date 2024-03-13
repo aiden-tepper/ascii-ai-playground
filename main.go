@@ -1,103 +1,97 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// Replace with your actual Hugging Face API key
-const apiKey = "your_hugging_face_api_key"
+type Response struct {
+	Answer string `json:"generated_text"`
+}
 
-// Replace with the chosen LLM model endpoint
+var apiKey = os.Getenv("HF_TOKEN")
+
 const modelEndpoint = "https://api-inference.huggingface.co/models/your_model"
 
 // QueryHuggingFace sends a question to the Hugging Face API and returns the response
 func QueryHuggingFace(question string) (string, error) {
-    // Prepare the request body with the question
-    // requestBody, err := json.Marshal(map[string]string{
-    //     "inputs": question,
-    // })
-    // if err != nil {
-    //     return "", err
-    // }
+	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you scenarios, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: "%s"`, question)
+	input := fmt.Sprintf(`{"inputs": "%s"}`, prompt)
+	payload := bytes.NewBuffer([]byte(input))
 
-    // // Create a new HTTP request
-    // req, err := http.NewRequest("POST", modelEndpoint, bytes.NewBuffer(requestBody))
-    // if err != nil {
-    //     return "", err
-    // }
+	req, err := http.NewRequest("POST", modelEndpoint, payload)
+	if err != nil {
+		return "", fmt.Errorf("Error creating request: %s", err)
+	}
 
-    // // Set the required headers
-    // req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
-    // req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 
-    // // Make the HTTP request
-    // client := &http.Client{}
-    // resp, err := client.Do(req)
-    // if err != nil || resp.StatusCode != 200 {
-    //     return "", err
-    // }
-    // defer resp.Body.Close()
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("Error making request:", err)
+	}
+	defer resp.Body.Close()
 
-    // // Read and parse the response body
-    // responseBody, err := ioutil.ReadAll(resp.Body)
-    // if err != nil {
-    //     return "", err
-    // }
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("Error reading response body:", err)
+	}
 
-    // // Extract the answer (adjust according to the API's response structure)
-    // var responseMap map[string]interface{}
-    // if err := json.Unmarshal(responseBody, &responseMap); err != nil {
-    //     return "", err
-    // }
+	var responseObject []Response
+	err = json.Unmarshal(body, &responseObject)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing response body:", err)
+	}
 
-    // // Assuming the answer is in the text field
-    // answer, ok := responseMap["generated_text"].(string)
-    // if !ok {
-    //     return "", fmt.Errorf("invalid response format")
-    // }
+	answer := responseObject[0].Answer
 
-    // return answer, nil
-    return question, nil
+	return answer, nil
 }
 
 func main() {
-    app := tview.NewApplication()
+	app := tview.NewApplication()
 
-    // Input field for the question
-    inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
-    outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
+	// Input field for the question
+	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
+	outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
 
-    inputField.SetBorder(true)
-    outputField.SetBorder(true)
+	inputField.SetBorder(true)
+	outputField.SetBorder(true)
 
-    // Function to handle when the Enter key is pressed
-    inputField.SetDoneFunc(func(key tcell.Key) {
-        if key == tcell.KeyEnter {
-            question := inputField.GetText()
-            // Query the Hugging Face API
-            answer, err := QueryHuggingFace(question)
-            if err != nil {
-                // Handle the error properly in a real application
-                fmt.Println("Error querying the API:", err)
-                return
-            }
+	// Function to handle when the Enter key is pressed
+	inputField.SetDoneFunc(func(key tcell.Key) {
+		if key == tcell.KeyEnter {
+			question := inputField.GetText()
+			// Query the Hugging Face API
+			answer, err := QueryHuggingFace(question)
+			if err != nil {
+				// Handle the error properly in a real application
+				fmt.Println("Error querying the API:", err)
+				return
+			}
 
-            // Display the answer (consider improving UI/UX in a real application)
-            fmt.Println("Magic 8-Ball says:", answer)
-            outputField.SetText(answer)
-            // app.Stop()
-        }
-    })
+			// Display the answer (consider improving UI/UX in a real application)
+			fmt.Println("Magic 8-Ball says:", answer)
+			outputField.SetText(answer)
+			// app.Stop()
+		}
+	})
 
-    // Set the root layout and run the application
-    root := tview.NewFlex().SetDirection(tview.FlexRow).
-        AddItem(outputField, 0, 4, false).
-        AddItem(inputField, 0, 1, true)
+	// Set the root layout and run the application
+	root := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(outputField, 0, 4, false).
+		AddItem(inputField, 0, 1, true)
 
-    if err := app.SetRoot(root, true).Run(); err != nil {
-        panic(err)
-    }
+	if err := app.SetRoot(root, true).Run(); err != nil {
+		panic(err)
+	}
 }
