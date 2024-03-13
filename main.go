@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -14,6 +15,23 @@ import (
 
 type Response struct {
 	Answer string `json:"generated_text"`
+}
+
+func showLoadingAnimation(outputField *tview.TextView, done chan bool) {
+	animationFrames := []string{"Loading .  ", "Loading .. ", "Loading ..."}
+	for {
+		select {
+		case <-done:
+			return
+		default:
+			for _, frame := range animationFrames {
+				app.QueueUpdateDraw(func() {
+					outputField.SetText(frame)
+				})
+				time.Sleep(200 * time.Millisecond)
+			}
+		}
+	}
 }
 
 var apiKey = os.Getenv("HF_TOKEN")
