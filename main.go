@@ -1,59 +1,103 @@
 package main
 
 import (
-	"os"
-	"os/exec"
-	"runtime"
+	"fmt"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-var clear map[string]func() //create a map for storing clear funcs
+// Replace with your actual Hugging Face API key
+const apiKey = "your_hugging_face_api_key"
 
-func init() {
-	clear = make(map[string]func()) //Initialize it
-	clear["linux"] = func() {
-		cmd := exec.Command("clear") //Linux example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	}
-	clear["windows"] = func() {
-		cmd := exec.Command("cmd", "/c", "cls") //Windows example, its tested
-		cmd.Stdout = os.Stdout
-		cmd.Run()
-	}
-}
+// Replace with the chosen LLM model endpoint
+const modelEndpoint = "https://api-inference.huggingface.co/models/your_model"
 
-func CallClear() {
-	value, ok := clear[runtime.GOOS] //runtime.GOOS -> linux, windows, darwin etc.
-	if ok {                          //if we defined a clear func for that platform:
-		value() //we execute it
-	} else { //unsupported platform
-		panic("Your platform is unsupported! I can't clear terminal screen :(")
-	}
-}
+// QueryHuggingFace sends a question to the Hugging Face API and returns the response
+func QueryHuggingFace(question string) (string, error) {
+    // Prepare the request body with the question
+    // requestBody, err := json.Marshal(map[string]string{
+    //     "inputs": question,
+    // })
+    // if err != nil {
+    //     return "", err
+    // }
 
-func printText() {
-    CallClear()
+    // // Create a new HTTP request
+    // req, err := http.NewRequest("POST", modelEndpoint, bytes.NewBuffer(requestBody))
+    // if err != nil {
+    //     return "", err
+    // }
+
+    // // Set the required headers
+    // req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+    // req.Header.Set("Content-Type", "application/json")
+
+    // // Make the HTTP request
+    // client := &http.Client{}
+    // resp, err := client.Do(req)
+    // if err != nil || resp.StatusCode != 200 {
+    //     return "", err
+    // }
+    // defer resp.Body.Close()
+
+    // // Read and parse the response body
+    // responseBody, err := ioutil.ReadAll(resp.Body)
+    // if err != nil {
+    //     return "", err
+    // }
+
+    // // Extract the answer (adjust according to the API's response structure)
+    // var responseMap map[string]interface{}
+    // if err := json.Unmarshal(responseBody, &responseMap); err != nil {
+    //     return "", err
+    // }
+
+    // // Assuming the answer is in the text field
+    // answer, ok := responseMap["generated_text"].(string)
+    // if !ok {
+    //     return "", fmt.Errorf("invalid response format")
+    // }
+
+    // return answer, nil
+    return question, nil
 }
 
 func main() {
-	app := tview.NewApplication()
-    inputField := tview.NewInputField().
-		SetLabel("Enter your question: ").
-		SetFieldWidth(101).
-		SetAcceptanceFunc(tview.InputFieldMaxLength(100)).
-		SetDoneFunc(func(key tcell.Key) {
-			app.Stop()
-		})
-    inputField.SetBorder(true)
+    app := tview.NewApplication()
 
-	flex := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(tview.NewBox().SetBorder(true).SetTitle("main content"), 0, 5, false).
-		AddItem(inputField, 0, 1, false)
-	
-    if err := app.SetRoot(flex, true).SetFocus(inputField).Run(); err != nil {
-		panic(err)
-	}
+    // Input field for the question
+    inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
+    outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
+
+    inputField.SetBorder(true)
+    outputField.SetBorder(true)
+
+    // Function to handle when the Enter key is pressed
+    inputField.SetDoneFunc(func(key tcell.Key) {
+        if key == tcell.KeyEnter {
+            question := inputField.GetText()
+            // Query the Hugging Face API
+            answer, err := QueryHuggingFace(question)
+            if err != nil {
+                // Handle the error properly in a real application
+                fmt.Println("Error querying the API:", err)
+                return
+            }
+
+            // Display the answer (consider improving UI/UX in a real application)
+            fmt.Println("Magic 8-Ball says:", answer)
+            outputField.SetText(answer)
+            // app.Stop()
+        }
+    })
+
+    // Set the root layout and run the application
+    root := tview.NewFlex().SetDirection(tview.FlexRow).
+        AddItem(outputField, 0, 4, false).
+        AddItem(inputField, 0, 1, true)
+
+    if err := app.SetRoot(root, true).Run(); err != nil {
+        panic(err)
+    }
 }
