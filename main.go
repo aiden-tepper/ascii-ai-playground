@@ -53,7 +53,7 @@ const modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-
 // QueryHuggingFace sends a question to the Hugging Face API and returns the response
 func QueryHuggingFace(question string) (string, error) {
 	apiKey := os.Getenv("HF_TOKEN")
-	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you scenarios, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: "%s"`, question)
+	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you scenarios, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: '%s'`, question)
 	input := fmt.Sprintf(`{"inputs": "%s"}`, prompt)
 	payload := bytes.NewBuffer([]byte(input))
 
