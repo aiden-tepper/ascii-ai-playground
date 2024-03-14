@@ -24,36 +24,39 @@ var (
 	debugView *tview.TextView
 )
 
-// Function to append messages to the debug view
+const modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
+
+// Append messages to the debug view
 func debugLog(message string) {
 	app.QueueUpdateDraw(func() {
 		fmt.Fprintf(debugView, "%s\n", message)
 	})
 }
 
-func showLoadingAnimation(app *tview.Application, outputField *tview.TextView, done chan bool) {
-	animationFrames := []string{"Loading .  ", "Loading .. ", "Loading ..."}
-	for {
-		select {
-		case <-done:
-			return
-		default:
-			for _, frame := range animationFrames {
+// Animate a loading message: "Loading .  ", "Loading .. ", "Loading ...", repeat
+func showLoadingAnimation(outputField *tview.TextView, done chan bool) {
+	go func() {
+		animationFrames := []string{"Loading .  ", "Loading .. ", "Loading ..."}
+		frameIndex := 0
+		for {
+			select {
+			case <-done:
+				return
+			default:
 				app.QueueUpdateDraw(func() {
-					outputField.SetText(frame)
+					outputField.SetText(animationFrames[frameIndex])
 				})
+				frameIndex = (frameIndex + 1) % len(animationFrames)
 				time.Sleep(200 * time.Millisecond)
 			}
 		}
-	}
+	}()
 }
-
-const modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
 
 // QueryHuggingFace sends a question to the Hugging Face API and returns the response
 func QueryHuggingFace(question string) (string, error) {
 	apiKey := os.Getenv("HF_TOKEN")
-	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you scenarios, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: '%s'`, question)
+	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you scenarios, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: '%s'. Reply ONLY with your answer.`, question)
 	input := fmt.Sprintf(`{"inputs": "%s"}`, prompt)
 	payload := bytes.NewBuffer([]byte(input))
 
@@ -83,9 +86,10 @@ func QueryHuggingFace(question string) (string, error) {
 		return "", fmt.Errorf("error parsing response body: %s", err)
 	}
 
-	answer := responseObject[0].Answer
-
-	return answer, nil
+	if len(responseObject) > 0 {
+		return responseObject[0].Answer, nil
+	}
+	return "No response", nil
 }
 
 func init() {
@@ -98,35 +102,35 @@ func init() {
 func main() {
 	app = tview.NewApplication()
 
-	// Input field for the question
 	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
 	outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
 
 	inputField.SetBorder(true)
 	outputField.SetBorder(true)
 
+	done := make(chan bool)
+
 	// Function to handle when the Enter key is pressed
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			question := inputField.GetText()
-			done := make(chan bool)
-
-			go showLoadingAnimation(app, outputField, done)
+			showLoadingAnimation(outputField, done)
 
 			// Use a goroutine for querying the API to not block the main thread
 			go func() {
+				defer func() {
+					done <- true
+				}()
+
 				answer, err := QueryHuggingFace(question)
 				if err != nil {
-					// Proper error handling
-					fmt.Println("Error querying the API:", err)
-					done <- true
+					debugLog(fmt.Sprintf("Error querying the API: %s", err))
 					return
 				}
 
 				app.QueueUpdateDraw(func() {
 					outputField.SetText("Magic 8-Ball says: " + answer)
 				})
-				done <- true
 			}()
 		}
 	})
