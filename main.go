@@ -21,9 +21,9 @@ type Response struct {
 }
 
 var (
-	app         *tview.Application
-	debugView   *tview.TextView
-	outputField *tview.TextView
+	app        *tview.Application
+	debugView  *tview.TextView
+	outputView *tview.TextView
 )
 
 const (
@@ -54,7 +54,7 @@ func showLoadingAnimation(done chan bool) {
 				return
 			default:
 				app.QueueUpdateDraw(func() {
-					outputField.SetText(animationFrames[frameIndex])
+					outputView.SetText(animationFrames[frameIndex])
 				})
 				frameIndex = (frameIndex + 1) % len(animationFrames)
 				time.Sleep(200 * time.Millisecond)
@@ -122,12 +122,27 @@ func main() {
 	app = tview.NewApplication()
 
 	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
-	outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
-	questionView := tview.NewTextView().SetTextAlign(2)
-	eightBallView := tview.NewTextView().SetTextAlign(2).SetText("🎱")
+	outputView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
+	questionView := tview.NewTextView().SetTextAlign(1).SetTextStyle(tcell.StyleDefault.Italic(true))
+	eightBallView := tview.NewTextView().SetTextAlign(0).SetText(`
+	
+	
+	   ____
+    ,dP9CGG88@b,
+  ,IP  _   Y888@@b,
+ dIi  (_)   G8888@b
+dCII  (_)   G8888@@b
+GCCIi     ,GG8888@@@
+GGCCCCCCCGGG88888@@@
+GGGGCCCGGGG88888@@@@...
+Y8GGGGGG8888888@@@@P.....
+ Y88888888888@@@@@P......
+ 'Y8888888@@@@@@@P'......
+    '@@@@@@@@@P'.......
+        """"........`)
 
 	inputField.SetBorder(true)
-	outputField.SetBorder(true)
+	outputView.SetBorder(true)
 	questionView.SetBorder(true)
 	eightBallView.SetBorder(true)
 
@@ -137,6 +152,8 @@ func main() {
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			question := inputField.GetText()
+			inputField.SetText("")
+			questionView.SetText(question)
 			showLoadingAnimation(done)
 
 			// Use a goroutine for querying the API to not block the main thread
@@ -152,13 +169,13 @@ func main() {
 				}
 
 				app.QueueUpdateDraw(func() {
-					outputField.SetText("Answer: " + result["answer"] + "\nExplanation: " + result["explanation"])
+					outputView.SetText("\n\n\n[::b]" + result["answer"] + "\n\n[::Bi]" + result["explanation"])
 				})
 			}()
 		}
 	})
 
-	subView := tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(eightBallView, 0, 1, false).AddItem(outputField, 0, 1, false)
+	subView := tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(eightBallView, 0, 1, false).AddItem(outputView, 0, 1, false)
 
 	contentView := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(questionView, 0, 1, false).AddItem(subView, 0, 4, false)
 	contentView.SetBorder(true)
