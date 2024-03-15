@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -27,9 +28,35 @@ var (
 )
 
 const (
-	debugMode     = true
-	modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
+	debugMode      = false
+	modelEndpoint  = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
+	eightBallAscii = `	   ____
+    ,dP9CGG88@b,
+  ,IP  _   Y888@@b,
+ dIi  (_)   G8888@b
+dCII  (_)   G8888@@b
+GCCIi     ,GG8888@@@
+GGCCCCCCCGGG88888@@@
+GGGGCCCGGGG88888@@@@...
+Y8GGGGGG8888888@@@@P.....
+ Y88888888888@@@@@P......
+ 'Y8888888@@@@@@@P'......
+    '@@@@@@@@@P'.......
+        """"........`
 )
+
+func analyzeMultilineString(s string) (maxLength int, lineCount int) {
+	lines := strings.Split(s, "\n") // Split the string into lines
+	lineCount = len(lines)          // The number of lines is the length of the slice
+
+	for _, line := range lines {
+		if len(line) > maxLength {
+			maxLength = len(line) // Update maxLength if the current line is longer
+		}
+	}
+
+	return maxLength, lineCount
+}
 
 // Append messages to the debug view
 func debugLog(message string) {
@@ -54,7 +81,8 @@ func showLoadingAnimation(done chan bool) {
 				return
 			default:
 				app.QueueUpdateDraw(func() {
-					outputView.SetText(animationFrames[frameIndex])
+					_, _, _, height := outputView.GetInnerRect()
+					outputView.SetText(strings.Repeat("\n", height/2) + animationFrames[frameIndex])
 				})
 				frameIndex = (frameIndex + 1) % len(animationFrames)
 				time.Sleep(200 * time.Millisecond)
@@ -124,22 +152,17 @@ func main() {
 	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
 	outputView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
 	questionView := tview.NewTextView().SetTextAlign(1).SetTextStyle(tcell.StyleDefault.Italic(true))
-	eightBallView := tview.NewTextView().SetTextAlign(0).SetText(`
-	
-	
-	   ____
-    ,dP9CGG88@b,
-  ,IP  _   Y888@@b,
- dIi  (_)   G8888@b
-dCII  (_)   G8888@@b
-GCCIi     ,GG8888@@@
-GGCCCCCCCGGG88888@@@
-GGGGCCCGGGG88888@@@@...
-Y8GGGGGG8888888@@@@P.....
- Y88888888888@@@@@P......
- 'Y8888888@@@@@@@P'......
-    '@@@@@@@@@P'.......
-        """"........`)
+	eightBallView := tview.NewTextView().SetTextAlign(0).SetText(eightBallAscii)
+
+	xOffset, yOffset := analyzeMultilineString(eightBallAscii)
+	log.Printf("xOffset: %d, yOffset: %d", xOffset/2, yOffset/2)
+
+	eightBallView.SetDrawFunc(func(screen tcell.Screen, x, y, w, h int) (int, int, int, int) {
+		y += h / 2
+		x += w / 2
+		xOffset, yOffset := analyzeMultilineString(eightBallAscii)
+		return x - xOffset/2, y - yOffset/2, w, h
+	})
 
 	inputField.SetBorder(true)
 	outputView.SetBorder(true)
@@ -164,12 +187,19 @@ Y8GGGGGG8888888@@@@P.....
 
 				result, err := QueryHuggingFace(question)
 				if err != nil {
-					debugLog(fmt.Sprintf("Error querying the API: %s", err))
+					if debugMode {
+						debugLog(fmt.Sprintf("Error querying the API: %s", err))
+					} else {
+						log.Printf("Error querying the API: %s", err)
+					}
 					return
 				}
 
 				app.QueueUpdateDraw(func() {
-					outputView.SetText("\n\n\n[::b]" + result["answer"] + "\n\n[::Bi]" + result["explanation"])
+					output := fmt.Sprint("[::b]" + result["answer"] + "\n\n[::Bi]" + result["explanation"])
+					_, yOffset := analyzeMultilineString(output)
+					_, _, _, height := outputView.GetInnerRect()
+					outputView.SetText(strings.Repeat("\n", height/2-yOffset/2) + output)
 				})
 			}()
 		}
@@ -177,13 +207,13 @@ Y8GGGGGG8888888@@@@P.....
 
 	subView := tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(eightBallView, 0, 1, false).AddItem(outputView, 0, 1, false)
 
-	contentView := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(questionView, 0, 1, false).AddItem(subView, 0, 4, false)
+	contentView := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(questionView, 3, 0, false).AddItem(subView, 0, 4, false)
 	contentView.SetBorder(true)
 
 	// Set the root layout and run the application
 	root := tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(contentView, 0, 4, false).
-		AddItem(inputField, 0, 1, true)
+		AddItem(inputField, 3, 0, true)
 
 	if debugMode {
 		debugView = tview.NewTextView()
