@@ -29,7 +29,7 @@ func setupApp() *tview.Application {
 func setupUI() *tview.Flex {
 	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
 	outputView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
-	questionView = tview.NewTextView().SetTextAlign(1).SetTextStyle(tcell.StyleDefault.Italic(true))
+	questionView = tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
 	eightBallView = tview.NewTextView().SetTextAlign(0).SetText(eightBallAscii)
 
 	inputField.SetBorder(true).SetBorderPadding(0, 0, 2, 2)
@@ -50,23 +50,23 @@ func setupUI() *tview.Flex {
 	})
 
 	subView := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(nil, 3, 0, false).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
 		AddItem(eightBallView, 0, 1, false).
-		AddItem(nil, 3, 0, false).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
 		AddItem(outputView, 0, 1, false).
-		AddItem(nil, 3, 0, false)
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false)
 
 	questionViewBox := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(nil, 3, 0, false).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
 		AddItem(questionView, 0, 1, false).
-		AddItem(nil, 3, 0, false)
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false)
 
 	contentView := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(nil, 1, 0, false).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 1, 0, false).
 		AddItem(questionViewBox, 3, 0, false).
-		AddItem(nil, 1, 0, false).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 1, 0, false).
 		AddItem(subView, 0, 4, false).
-		AddItem(nil, 1, 0, false)
+		AddItem(tview.NewTextView().SetDynamicColors(true), 1, 0, false)
 	contentView.SetBorder(true)
 
 	return tview.NewFlex().SetDirection(tview.FlexRow).
@@ -78,7 +78,7 @@ func handleInput(key tcell.Key, inputField *tview.InputField, done chan bool) {
 	if key == tcell.KeyEnter {
 		question := inputField.GetText()
 		inputField.SetText("")
-		questionView.SetText(question)
+		questionView.SetText("[::i]" + question)
 		showLoadingAnimation(done)
 		queryAPIAndDisplayResult(question, done)
 	}
