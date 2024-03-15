@@ -11,11 +11,12 @@ import (
 	"strings"
 )
 
-func queryAPIAndDisplayResult(question string, done chan bool) {
+func queryAPIAndDisplayResult(question string, doneLoading chan bool, doneShaking chan bool) {
 	// Use a goroutine for querying the API to not block the main thread
 	go func() {
 		defer func() {
-			done <- true
+			doneLoading <- true
+			doneShaking <- true
 		}()
 
 		result, err := QueryHuggingFace(question)

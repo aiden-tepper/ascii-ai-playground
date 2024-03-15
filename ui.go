@@ -1,12 +1,15 @@
 package main
 
 import (
+	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+var shakeDegreeX, shakeDegreeY = 0, 0
 
 const eightBallAscii = `	   ____
     ,dP9CGG88@b,
@@ -37,14 +40,13 @@ func setupUI() *tview.Flex {
 	questionView.SetBorder(true).SetBorderPadding(0, 0, 2, 2)
 	eightBallView.SetBorder(true).SetBorderPadding(4, 4, 4, 4)
 
-	done := make(chan bool)
 	inputField.SetDoneFunc(func(key tcell.Key) {
-		handleInput(key, inputField, done)
+		handleInput(key, inputField)
 	})
 
 	eightBallView.SetDrawFunc(func(screen tcell.Screen, x, y, w, h int) (int, int, int, int) {
-		y += h / 2
-		x += w / 2
+		y += h/2 + shakeDegreeY
+		x += w/2 + shakeDegreeX
 		xOffset, yOffset := analyzeMultilineString(eightBallAscii)
 		return x - xOffset/2, y - yOffset/2, w, h
 	})
@@ -74,13 +76,16 @@ func setupUI() *tview.Flex {
 		AddItem(inputField, 3, 0, true)
 }
 
-func handleInput(key tcell.Key, inputField *tview.InputField, done chan bool) {
+func handleInput(key tcell.Key, inputField *tview.InputField) {
 	if key == tcell.KeyEnter {
+		doneLoading := make(chan bool)
+		doneShaking := make(chan bool)
 		question := inputField.GetText()
 		inputField.SetText("")
 		questionView.SetText("[::i]" + question)
-		showLoadingAnimation(done)
-		queryAPIAndDisplayResult(question, done)
+		showLoadingAnimation(doneLoading)
+		showShakingAnimation(doneShaking)
+		queryAPIAndDisplayResult(question, doneLoading, doneShaking)
 	}
 }
 
@@ -99,6 +104,28 @@ func showLoadingAnimation(done chan bool) {
 				})
 				frameIndex = (frameIndex + 1) % len(animationFrames)
 				time.Sleep(200 * time.Millisecond)
+			}
+		}
+	}()
+}
+
+func showShakingAnimation(done chan bool) {
+	go func() {
+		for {
+			select {
+			case <-done:
+				shakeDegreeX, shakeDegreeY = 0, 0
+				app.QueueUpdateDraw(func() {
+					eightBallView.SetText(eightBallAscii)
+				})
+				return
+			default:
+				app.QueueUpdateDraw(func() {
+					shakeDegreeX = rand.Intn(4) - 2
+					shakeDegreeY = rand.Intn(4) - 2
+					eightBallView.SetText(eightBallAscii)
+				})
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
 	}()
