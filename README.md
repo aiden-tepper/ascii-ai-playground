@@ -1,2 +1,2 @@
-# ascii-ai-playground
-TUI-based playground for generating ASCII animations using LLMs
+# magic-8-ball
+tview-based AI-powered Magic 8 Ball
