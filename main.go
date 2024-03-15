@@ -21,8 +21,9 @@ type Response struct {
 }
 
 var (
-	app       *tview.Application
-	debugView *tview.TextView
+	app         *tview.Application
+	debugView   *tview.TextView
+	outputField *tview.TextView
 )
 
 const (
@@ -43,7 +44,7 @@ func debugLog(message string) {
 }
 
 // Animate a loading message: "Loading .  ", "Loading .. ", "Loading ...", repeat
-func showLoadingAnimation(outputField *tview.TextView, done chan bool) {
+func showLoadingAnimation(done chan bool) {
 	go func() {
 		animationFrames := []string{"Loading .  ", "Loading .. ", "Loading ..."}
 		frameIndex := 0
@@ -122,9 +123,13 @@ func main() {
 
 	inputField := tview.NewInputField().SetLabel("Ask the Magic 8-Ball: ")
 	outputField := tview.NewTextView().SetDynamicColors(true).SetTextAlign(1)
+	questionView := tview.NewTextView().SetTextAlign(2)
+	eightBallView := tview.NewTextView().SetTextAlign(2).SetText("🎱")
 
 	inputField.SetBorder(true)
 	outputField.SetBorder(true)
+	questionView.SetBorder(true)
+	eightBallView.SetBorder(true)
 
 	done := make(chan bool)
 
@@ -132,7 +137,7 @@ func main() {
 	inputField.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
 			question := inputField.GetText()
-			showLoadingAnimation(outputField, done)
+			showLoadingAnimation(done)
 
 			// Use a goroutine for querying the API to not block the main thread
 			go func() {
@@ -153,9 +158,14 @@ func main() {
 		}
 	})
 
+	subView := tview.NewFlex().SetDirection(tview.FlexColumn).AddItem(eightBallView, 0, 1, false).AddItem(outputField, 0, 1, false)
+
+	contentView := tview.NewFlex().SetDirection(tview.FlexRow).AddItem(questionView, 0, 1, false).AddItem(subView, 0, 4, false)
+	contentView.SetBorder(true)
+
 	// Set the root layout and run the application
 	root := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(outputField, 0, 4, false).
+		AddItem(contentView, 0, 4, false).
 		AddItem(inputField, 0, 1, true)
 
 	if debugMode {
