@@ -32,10 +32,10 @@ func setupUI() *tview.Flex {
 	questionView = tview.NewTextView().SetTextAlign(1).SetTextStyle(tcell.StyleDefault.Italic(true))
 	eightBallView = tview.NewTextView().SetTextAlign(0).SetText(eightBallAscii)
 
-	inputField.SetBorder(true)
-	outputView.SetBorder(true)
-	questionView.SetBorder(true)
-	eightBallView.SetBorder(true)
+	inputField.SetBorder(true).SetBorderPadding(0, 0, 2, 2)
+	outputView.SetBorder(true).SetBorderPadding(4, 4, 4, 4)
+	questionView.SetBorder(true).SetBorderPadding(0, 0, 2, 2)
+	eightBallView.SetBorder(true).SetBorderPadding(4, 4, 4, 4)
 
 	done := make(chan bool)
 	inputField.SetDoneFunc(func(key tcell.Key) {
@@ -50,23 +50,28 @@ func setupUI() *tview.Flex {
 	})
 
 	subView := tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(nil, 3, 0, false).
 		AddItem(eightBallView, 0, 1, false).
-		AddItem(outputView, 0, 1, false)
+		AddItem(nil, 3, 0, false).
+		AddItem(outputView, 0, 1, false).
+		AddItem(nil, 3, 0, false)
+
+	questionViewBox := tview.NewFlex().SetDirection(tview.FlexColumn).
+		AddItem(nil, 3, 0, false).
+		AddItem(questionView, 0, 1, false).
+		AddItem(nil, 3, 0, false)
 
 	contentView := tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(questionView, 3, 0, false).
-		AddItem(subView, 0, 4, false)
+		AddItem(nil, 1, 0, false).
+		AddItem(questionViewBox, 3, 0, false).
+		AddItem(nil, 1, 0, false).
+		AddItem(subView, 0, 4, false).
+		AddItem(nil, 1, 0, false)
 	contentView.SetBorder(true)
 
 	return tview.NewFlex().SetDirection(tview.FlexRow).
 		AddItem(contentView, 0, 4, false).
 		AddItem(inputField, 3, 0, true)
-}
-
-func setupDebugView(root *tview.Flex) {
-	debugView = tview.NewTextView()
-	debugView.SetTitle("Debug Log").SetBorder(true)
-	root.AddItem(debugView, 0, 1, false)
 }
 
 func handleInput(key tcell.Key, inputField *tview.InputField, done chan bool) {

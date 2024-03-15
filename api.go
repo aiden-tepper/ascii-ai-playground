@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -21,7 +20,7 @@ func queryAPIAndDisplayResult(question string, done chan bool) {
 
 		result, err := QueryHuggingFace(question)
 		if err != nil {
-			logError(err)
+			alert(fmt.Sprint(err))
 			return
 		}
 
@@ -74,14 +73,6 @@ func QueryHuggingFace(question string) (map[string]string, error) {
 		return map[string]string{"answer": result["answer"], "explanation": result["explanation"]}, nil
 	}
 	return nil, nil
-}
-
-func logError(err error) {
-	if debugMode {
-		debugLog(fmt.Sprintf("Error querying the API: %s", err))
-	} else {
-		log.Printf("Error querying the API: %s", err)
-	}
 }
 
 func displayResult(result map[string]string) {

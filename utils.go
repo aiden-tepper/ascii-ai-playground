@@ -1,8 +1,10 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"strings"
+
+	"github.com/rivo/tview"
 )
 
 type Response struct {
@@ -22,13 +24,25 @@ func analyzeMultilineString(s string) (maxLength int, lineCount int) {
 	return maxLength, lineCount
 }
 
-func debugLog(message string) {
+func alert(message string) {
 	switch debugMode {
 	case true:
-		app.QueueUpdateDraw(func() {
-			fmt.Fprintf(debugView, "%s\n", message)
-		})
+		log.Println(message)
+		app.Stop()
 	case false:
-		fmt.Fprintf(debugView, "%s\n", message)
+		modal := tview.NewModal().
+			SetText(message).
+			AddButtons([]string{"Restart", "Quit"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				if buttonLabel == "Quit" {
+					app.Stop()
+				} else if buttonLabel == "Restart" {
+					main()
+				}
+			})
+		if err := app.SetRoot(modal, false).SetFocus(modal).Run(); err != nil {
+			panic(err)
+		}
+
 	}
 }
