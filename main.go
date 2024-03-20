@@ -13,7 +13,7 @@ var (
 )
 
 const (
-	debugMode     = false
+	debugMode     = true
 	modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
 )
 
