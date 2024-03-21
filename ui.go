@@ -11,6 +11,12 @@ import (
 
 var shakeDegreeX, shakeDegreeY = 0, 0
 
+var (
+	isMobile         bool
+	showingEightBall bool = true
+	subPage          *tview.Pages
+)
+
 const eightBallAscii = `	   ____
     ,dP9CGG88@b,
   ,IP  _   Y888@@b,
@@ -51,11 +57,18 @@ func setupUI() *tview.Flex {
 		return x - xOffset/2, y - yOffset/2, w, h
 	})
 
-	subView := tview.NewFlex().SetDirection(tview.FlexColumn).
-		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
+	bothView := tview.NewFlex().SetDirection(tview.FlexColumn).
 		AddItem(eightBallView, 0, 1, false).
 		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
-		AddItem(outputView, 0, 1, false).
+		AddItem(outputView, 0, 1, false)
+
+	subPage = tview.NewPages().AddPage("eightBall", eightBallView, true, false).
+		AddPage("output", outputView, true, false).
+		AddPage("both", bothView, true, true)
+
+	subView := tview.NewFlex().SetDirection(tview.FlexRow).
+		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false).
+		AddItem(subPage, 0, 1, false).
 		AddItem(tview.NewTextView().SetDynamicColors(true), 3, 0, false)
 
 	questionViewBox := tview.NewFlex().SetDirection(tview.FlexColumn).
@@ -93,9 +106,11 @@ func showLoadingAnimation(done chan bool) {
 	go func() {
 		animationFrames := []string{"Loading .  ", "Loading .. ", "Loading ..."}
 		frameIndex := 0
+		toggleViews()
 		for {
 			select {
 			case <-done:
+				toggleViews()
 				return
 			default:
 				app.QueueUpdateDraw(func() {
@@ -129,4 +144,16 @@ func showShakingAnimation(done chan bool) {
 			}
 		}
 	}()
+}
+
+func toggleViews() {
+	if isMobile {
+		showingEightBall = !showingEightBall
+		if showingEightBall {
+			subPage.SwitchToPage("output")
+		} else {
+			subPage.SwitchToPage("eightBall")
+
+		}
+	}
 }

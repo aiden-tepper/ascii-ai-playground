@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	"github.com/joho/godotenv"
 	"github.com/rivo/tview"
 )
@@ -13,7 +15,7 @@ var (
 )
 
 const (
-	debugMode     = true
+	debugMode     = false
 	modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
 )
 
@@ -26,7 +28,16 @@ func init() {
 func main() {
 	app = setupApp()
 	root := setupUI()
+
 	if err := app.SetRoot(root, true).Run(); err != nil {
 		panic(err)
 	}
+
+	_, _, w, _ := root.GetRect()
+	if w < 60 {
+		isMobile = true
+		log.Println("Mobile mode detected")
+		subPage.SwitchToPage("eightBall")
+	}
+
 }
