@@ -19,4 +19,5 @@ jobs:
             pkill gotty || true
             cd ~/magic-8-ball
             git pull
-            nohup gotty -w go run . > /dev/null 2>&1 &          
+            go build -o 8ball .
+            sudo systemctl restart gotty.service
