@@ -1,0 +1,22 @@
+name: Deploy Go Application over SSH
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart application
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DROPLET_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pkill gotty || true
+            cd ~/magic-8-ball
+            git pull
+            nohup gotty -w go run . > /dev/null 2>&1 &          
