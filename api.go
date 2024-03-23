@@ -63,6 +63,9 @@ func QueryHuggingFace(question string) (map[string]string, error) {
 
 	re := regexp.MustCompile(`\{([^}]+)\}`)
 	matches := re.FindAllStringSubmatch(responseObject[0].Answer, -1)
+	if len(matches) == 0 {
+		return map[string]string{"answer": "Ask again!", "explanation": "give the 8 ball one more shake."}, nil
+	}
 
 	var result map[string]string
 	err = json.Unmarshal([]byte(matches[1][0]), &result)
