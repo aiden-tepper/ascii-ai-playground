@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/rivo/tview"
@@ -29,15 +29,19 @@ func main() {
 	app = setupApp()
 	root := setupUI()
 
+	go func() {
+		time.Sleep(10 * time.Millisecond)
+		_, _, w, _ := root.GetRect()
+		if w < 60 {
+			isMobile = true
+			// log.Println("Mobile mode detected:", w)
+			app.QueueUpdateDraw(func() {
+				subPage.SwitchToPage("eightBall")
+			})
+		}
+	}()
+
 	if err := app.SetRoot(root, true).Run(); err != nil {
 		panic(err)
 	}
-
-	_, _, w, _ := root.GetRect()
-	if w < 60 {
-		isMobile = true
-		log.Println("Mobile mode detected")
-		subPage.SwitchToPage("eightBall")
-	}
-
 }
