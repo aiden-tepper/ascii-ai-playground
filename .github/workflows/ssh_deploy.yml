@@ -18,7 +18,7 @@ jobs:
           script: |
             pkill gotty || true
             cd ~/magic-8-ball
+            rm 8ball
             git pull
             go build -o 8ball .
-            mv ./8ball ../
             sudo systemctl restart gotty.service
