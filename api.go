@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"regexp"
@@ -31,8 +31,8 @@ func queryAPIAndDisplayResult(question string, doneLoading chan bool, doneShakin
 
 func QueryHuggingFace(question string) (map[string]string, error) {
 	apiKey := os.Getenv("HF_TOKEN")
-	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will give you a question, and you will respond in the way a magic 8 ball would, but make it funny and clever. Here is your question: '%s'. Reply in this format: {\"answer\": answer, \"explanation\": explanation}, where 'answer' is the few word answer that would show up on the magic 8-ball itself, and explanation is a sentence or two of explanation, humorous quips, or highly analytical statements.`, question)
-	input := fmt.Sprintf(`{"inputs": "%s", "options": {"use_cache": false}}`, prompt)
+	prompt := fmt.Sprintf(`Pretend you are a magic 8 ball. I will ask a question and shake you, and you will answer. Here is your question: '%s'. Reply in this format: {\"answer\": answer, \"explanation\": explanation}, where 'answer' is a few words that are either affirmative, non-committal, or negative, and 'explanation' is a brief explanation, or set of highly analytical statements.`, question)
+	input := fmt.Sprintf(`{"inputs": "%s", "options": {"use_cache": false}, "parameters": {"return_full_text": false, "max_new_tokens": 100}}`, prompt)
 	payload := bytes.NewBuffer([]byte(input))
 
 	req, err := http.NewRequest("POST", modelEndpoint, payload)
@@ -50,7 +50,7 @@ func QueryHuggingFace(question string) (map[string]string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %s", err)
 	}
@@ -68,7 +68,7 @@ func QueryHuggingFace(question string) (map[string]string, error) {
 	}
 
 	var result map[string]string
-	err = json.Unmarshal([]byte(matches[1][0]), &result)
+	err = json.Unmarshal([]byte(matches[0][0]), &result)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing JSON object: %s", err)
 	}

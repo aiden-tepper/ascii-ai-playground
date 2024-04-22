@@ -15,8 +15,10 @@ var (
 )
 
 const (
-	debugMode     = false
-	modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
+	debugMode = false
+	// modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-7b-it"
+	// modelEndpoint = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+	modelEndpoint = "https://api-inference.huggingface.co/models/google/gemma-1.1-7b-it"
 )
 
 func init() {
